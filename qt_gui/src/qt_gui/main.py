@@ -93,6 +93,8 @@ class Main(object):
                 help='start with this named perspective')
             common_group.add_argument('--perspective-file', dest='perspective_file', type=str, metavar='PERSPECTIVE_FILE',
                 help='start with a perspective loaded from a file')
+            common_group.add_argument('--perspective-icon', dest='perspective_icon', type=str, metavar='PERSPECTIVE_ICON',
+                help='show custom icon')
         common_group.add_argument('--reload-import', dest='reload_import', default=False, action='store_true',
             help='reload every imported module')
         if not standalone:
@@ -207,6 +209,7 @@ class Main(object):
             self._options.multi_process = False
             self._options.perspective = None
             self._options.perspective_file = None
+            self._options.perspective_icon = None
             self._options.standalone_plugin = standalone
             self._options.list_perspectives = False
             self._options.list_plugins = False
@@ -261,6 +264,9 @@ class Main(object):
 
             if self._options.perspective_file is not None and not os.path.isfile(self._options.perspective_file):
                 raise RuntimeError('Option --perspective-file must reference existing file')
+
+            if self._options.perspective_icon is not None and not os.path.isfile(self._options.perspective_icon):
+                raise RuntimeError('Option --perspective-icon must reference existing file')
 
         except RuntimeError as e:
             print(str(e))
@@ -526,6 +532,9 @@ class Main(object):
                 perspective_manager.set_perspective(plugin, hide_and_without_plugin_changes=True)
             elif self._options.perspective_file:
                 perspective_manager.import_perspective_from_file(self._options.perspective_file, perspective_manager.HIDDEN_PREFIX + '__cli_perspective_from_file')
+                if self._options.perspective_icon and main_window is not None:
+                    icon = QIcon(self._options.perspective_icon)
+                    main_window.setWindowIcon(icon)
             else:
                 perspective_manager.set_perspective(self._options.perspective)
 
