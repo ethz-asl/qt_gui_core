@@ -32,7 +32,7 @@ import os
 
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import QEvent, QObject, Qt, qWarning
-from python_qt_binding.QtGui import QDockWidget, QIcon, QWidget
+from python_qt_binding.QtGui import QDockWidget, QIcon, QWidget, QMenu, QAction
 
 
 class DockWidgetTitleBar(QWidget):
@@ -42,6 +42,7 @@ class DockWidgetTitleBar(QWidget):
     def __init__(self, dock_widget, qtgui_path):
         super(DockWidgetTitleBar, self).__init__(dock_widget)
         self._dock_widget = dock_widget
+        self.hide_title_bar = False
 
         ui_file = os.path.join(qtgui_path, 'resource', 'dock_widget_title_bar.ui')
         loadUi(ui_file, self)
@@ -88,6 +89,8 @@ class DockWidgetTitleBar(QWidget):
         }
         self._dock_widget.installEventFilter(self)
 
+        self.title_label.installEventFilter(self)
+
     def __del__(self):
         self._dock_widget.removeEventFilter(self)
 
@@ -120,6 +123,18 @@ class DockWidgetTitleBar(QWidget):
             ret_val = self._event_callbacks[event.type()](obj, event)
             if ret_val is not None:
                 return ret_val
+        if event.type() == event.ContextMenu and obj == self.title_label:
+            menu = QMenu(self)
+            hide_action = QAction("Hide title bar", self)
+            hide_action.setCheckable(True)
+            hide_action.setChecked(self.hide_title_bar)
+            if self._dock_widget.features() & QDockWidget.DockWidgetFloatable and \
+                    self._dock_widget.features() & QDockWidget.DockWidgetMovable:
+                menu.addAction(hide_action)
+            action = menu.exec_(self.mapToGlobal(event.pos()))
+            if action == hide_action:
+                self.hide_title_bar = not self.hide_title_bar
+            return True
         return QObject.eventFilter(self, obj, event)
 
     def _update_icon(self, *args):
@@ -166,6 +181,8 @@ class DockWidgetTitleBar(QWidget):
         movable = bool(self.parentWidget().features() & QDockWidget.DockWidgetMovable)
         if movable:
             settings.set_value('dockable', self.dockable_button.isChecked())
+        # save hide title bar state
+        settings.set_value('hide_title_bar', self.hide_title_bar)
 
     def restore_settings(self, settings):
         dockable = settings.value('dockable', True) in [True, 'true']
@@ -173,6 +190,8 @@ class DockWidgetTitleBar(QWidget):
         movable = bool(self.parentWidget().features() & QDockWidget.DockWidgetMovable)
         self.dockable_button.setChecked(dockable and movable)
         self._toggle_dockable(self.dockable_button.isChecked())
+        # restore hide title bar state
+        self.hide_title_bar = settings.value('hide_title_bar', False) in [True, 'true']
 
 
 if __name__ == '__main__':
