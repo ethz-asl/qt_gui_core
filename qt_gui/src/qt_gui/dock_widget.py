@@ -29,10 +29,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from python_qt_binding.QtCore import qDebug, QEvent, QPoint, QRect, Qt
-from python_qt_binding.QtGui import QApplication, QDockWidget, QMouseEvent
+from python_qt_binding.QtGui import QApplication, QDockWidget, QMouseEvent, QWidget, QHBoxLayout
 
 from .dockable_main_window import DockableMainWindow
 from .reparent_event import ReparentEvent
+from .dock_widget_title_bar import DockWidgetTitleBar
 
 
 class DockWidget(QDockWidget):
@@ -48,6 +49,7 @@ class DockWidget(QDockWidget):
         self._dragging_local_pos = None
         self._releasing_and_repressing_while_dragging = False
         self._main_windows = []
+        self._title_bar_backup = None
 
     def _event(self, e):
         if e.type() == QEvent.MouseButtonPress and e.button() == Qt.LeftButton:
@@ -213,7 +215,10 @@ class DockWidget(QDockWidget):
         settings.set_value('parent', self._parent_container_serial_number())
 
         title_bar = self.titleBarWidget()
-        title_bar.save_settings(settings)
+        if isinstance(title_bar, DockWidgetTitleBar):
+            title_bar.save_settings(settings)
+        else:
+            self._title_bar_backup.save_settings(settings)
 
     def restore_settings(self, settings):
         serial_number = settings.value('parent', None)
@@ -236,6 +241,14 @@ class DockWidget(QDockWidget):
 
         title_bar = self.titleBarWidget()
         title_bar.restore_settings(settings)
+        if title_bar.hide_title_bar and not self.features() & DockWidget.DockWidgetFloatable and \
+                not self.features() & DockWidget.DockWidgetMovable:
+            self._title_bar_backup = title_bar
+            title_widget = QWidget(self)
+            layout = QHBoxLayout(title_widget)
+            layout.setContentsMargins(0, 0, 0, 0)
+            title_widget.setLayout(layout)
+            self.setTitleBarWidget(title_widget)
 
     def _parent_container(self, dock_widget):
         from .dock_widget_container import DockWidgetContainer
