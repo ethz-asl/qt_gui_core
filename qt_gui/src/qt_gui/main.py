@@ -93,6 +93,8 @@ class Main(object):
                 help='start with this named perspective')
             common_group.add_argument('--perspective-file', dest='perspective_file', type=str, metavar='PERSPECTIVE_FILE',
                 help='start with a perspective loaded from a file')
+            common_group.add_argument('--perspective-name', dest='perspective_name', type=str, metavar='PERSPECTIVE_NAME',
+                help='rename the perspective window title')
         common_group.add_argument('--reload-import', dest='reload_import', default=False, action='store_true',
             help='reload every imported module')
         if not standalone:
@@ -208,6 +210,7 @@ class Main(object):
             self._options.multi_process = False
             self._options.perspective = None
             self._options.perspective_file = None
+            self._options.perspective_name = None
             self._options.standalone_plugin = standalone
             self._options.list_perspectives = False
             self._options.list_plugins = False
@@ -526,7 +529,10 @@ class Main(object):
             if plugin:
                 perspective_manager.set_perspective(plugin, hide_and_without_plugin_changes=True)
             elif self._options.perspective_file:
-                perspective_manager.import_perspective_from_file(self._options.perspective_file, perspective_manager.HIDDEN_PREFIX + '__cli_perspective_from_file')
+                if self._options.perspective_name is None:
+                    perspective_manager.import_perspective_from_file(self._options.perspective_file, perspective_manager.HIDDEN_PREFIX + '__cli_perspective_from_file')
+                else:
+                    perspective_manager.import_perspective_from_file(self._options.perspective_file, perspective_manager.HIDDEN_PREFIX + self._options.perspective_name)
             else:
                 perspective_manager.set_perspective(self._options.perspective)
 
